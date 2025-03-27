@@ -16,6 +16,8 @@ RUN groupadd --gid 1000 codespace \
 COPY --chown=codespace:codespace ${UTIL_PATH}/ ${USER_HOME}/utils
 COPY --chown=codespace:codespace ${PREPROCESSING_PATH}/preprocessor.py \
     ${USER_HOME}/data_preprocessing/
+COPY --chown=codespace:codespace ${TRAINING_PATH}/trainer.py \
+    ${USER_HOME}/training/
 COPY --chown=codespace:codespace ${REQUIREMENTS_PATH}/requirements.txt \
     ${USER_HOME}/
 

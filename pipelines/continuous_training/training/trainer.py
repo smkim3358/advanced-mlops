@@ -135,29 +135,34 @@ class Trainer:
                 )
 
                 # MLflow logging
-                # TODO: 1. estimator_name 을 태그로 저장
+                # 1. estimator_name 을 태그로 저장
                 mlflow.set_tag(
-                    
+                    "estimator_name", cls.__class__.__name__
                 )
-                # TODO: 2. 파라미터 로깅
+                # 2. 파라미터 로깅
                 mlflow.log_params(
-                    
+                    {key: cls.get_params()[key] for key in params}
                 )
-                # TODO: 3. Early stopping한 모델의 최종 iterations를 파라미터로 저장
+                # 3. Early stopping한 모델의 최종 iterations를 파라미터로 저장
                 mlflow.log_params(
-                    
+                    {"iterations": cls.best_iteration_}
                 )
-                # TODO: 4. self._parse_score_dict를 이용해 검증셋에 대한 스코어를 메트릭으로 저장
+                # 4. self._parse_score_dict를 이용해 검증셋에 대한 스코어를 메트릭으로 저장
                 mlflow.log_metrics(
-                    
+                    self._parse_score_dict(
+                        cls.get_best_score().get("validation")
+                    )
                 )
-                # TODO: 5. signature를 포함하여 모델 정보 로깅
+                # 5. signature를 포함하여 모델 정보 로깅
                 mlflow.catboost.log_model(
-                    
+                    cls,
+                    "CatBoostClassifier",
+                    signature=infer_signature(x_train, cls.predict(x_train)),
                 )
-                # TODO: 6. 모델 객체 저장
+                # 6. 모델 객체 저장
                 mlflow.catboost.save_model(
-                    
+                    cls,
+                    path=artifacts_path,
                 )
 
         self.is_trained = True
@@ -179,11 +184,13 @@ class Trainer:
                 "학습이 진행되지 않았습니다. 실험 결과를 가져올 수 없습니다."
             )
 
-        # TODO: 최적 모델 탐색
+        # 최적 모델 탐색
         # mlflow.search_runs 메서드를 이용해
         # metrics.Accuracy를 내림차순으로 정렬하여 맨 위의 데이터를 best_run_df에 저장
         best_run_df = mlflow.search_runs(
-            
+            experiment_names=[self._experiment_name],
+            order_by=["metrics.Accuracy DESC"],
+            max_results=1,
         )
 
         if len(best_run_df) == 0:
@@ -202,11 +209,14 @@ class Trainer:
         model_uri = f"{model_info.info.artifact_uri}/CatBoostClassifier"
         model_params = model_info.data.params
 
-        # TODO: 모델 저장
+        # 모델 저장
         # 1. Model URI로부터 모델을 불러오기
         # 2. 파라미터 정보를 메타데이터로 저장
         bentoml.catboost.save_model(
-            
+            name="credit_score_classifier",
+            model=mlflow.catboost.load_model(model_uri),
+            signatures={"predict": {"batchable": True, "batch_dim": 0}},
+            metadata=model_params,
         )
 
     def _make_dirs(self) -> None:
@@ -304,15 +314,14 @@ if __name__ == "__main__":
         description="An argument parser for training."
     )
 
-    # TODO: 코드 작성
     # 1. 본 파일을 실행할 때는 두 개의 인자를 받음
     # 2. model_name은 문자열로 받으며, 기본값은 "credit_score_classification"
     # 3. base_dt는 문자열을 받으며 기본값은 DateValues.get_current_date()
     parser.add_argument(
-        
+        "--model_name", type=str, default="credit_score_classification"
     )
     parser.add_argument(
-        
+        "--base_dt", type=str, default=DateValues.get_current_date()
     )
 
     args = parser.parse_args()
