@@ -20,9 +20,12 @@ def get_branch_by_api_status() -> List[str] | str:
     try:
         response = requests.get("http://localhost:3000/healthz")
         if response.status_code == 200:
-            # TODO: 헬스체크의 응답이 올바르게 왔다면 다음 Task를 실행해야 함
+            # 헬스체크의 응답이 올바르게 왔다면 다음 Task를 실행해야 함
             # "get_deployed_model_creation_time", "get_latest_trained_model_creation_time" 를 실행해야 함
-            return 
+            return [
+                "get_deployed_model_creation_time",
+                "get_latest_trained_model_creation_time",
+            ] 
         else:
             return "deploy_new_model"
     except Exception as e:
@@ -35,8 +38,10 @@ def get_deployed_model_creation_time() -> datetime | None:
     try:
         response = requests.post("http://localhost:3000/metadata")
         if response.status_code == 200:
-            # TODO: 메타데이터 조회 응답이 올바르게 왔다면 메타데이터 내 모델의 생성 시간(creation_time)을 datetime 객체로 반환해야 함
-            return 
+            # 메타데이터 조회 응답이 올바르게 왔다면 메타데이터 내 모델의 생성 시간(creation_time)을 datetime 객체로 반환해야 함
+            return datetime.strptime(
+                response.json().get("creation_time"), "%Y-%m-%dT%H:%M:%S.%fZ"
+            ) 
         else:
             print(
                 f"`creation_time`을 불러올 수 없습니다.: {response.status_code}"
@@ -51,8 +56,8 @@ def get_latest_trained_model_creation_time() -> datetime | None:
     """로컬 저장소에 저장된 최신 학습 모델의 `creation_time` 조회합니다."""
     try:
         bento_model = bentoml.models.get("credit_score_classifier:latest")
-        # TODO: bento_model의 creation_time의 timezone 정보를 제거하고 반환
-        return 
+        # bento_model의 creation_time의 timezone 정보를 제거하고 반환
+        return bento_model.info.creation_time.replace(tzinfo=None) 
     except Exception as e:
         print(f"Error getting latest trained model creation time: {e}")
         return None
