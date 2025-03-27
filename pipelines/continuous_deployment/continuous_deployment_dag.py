@@ -7,7 +7,7 @@ import requests
 from airflow import DAG
 from airflow.models import Variable
 from airflow.operators.bash import BashOperator
-from airflow.operators.empty import EmptyOperator
+#from airflow.operators.empty import EmptyOperator
 from airflow.operators.python import BranchPythonOperator, PythonOperator
 
 from utils.callbacks import failure_callback, success_callback
@@ -113,27 +113,37 @@ with DAG(
     catchup=False,
     tags=["lgcns", "mlops"],
 ) as dag:
-    # TODO: API 상태 체크 결과 가져오기
-    get_api_status_task = EmptyOperator(task_id="get_branch_by_api_status")
+    # API 상태 체크 결과 가져오기
+    get_api_status_task = BranchPythonOperator(
+        task_id="get_branch_by_api_status",
+        python_callable=get_branch_by_api_status,
+        provide_context=True,
+    )
 
-    # TODO: 현재 컨테이너에서 실행 중인 모델의 creation_time 가져오기
-    get_deployed_model_creation_time_task = EmptyOperator(
+    # 현재 컨테이너에서 실행 중인 모델의 creation_time 가져오기
+    get_deployed_model_creation_time_task = PythonOperator(
         task_id="get_deployed_model_creation_time",
+        python_callable=get_deployed_model_creation_time,
     )
 
-    # TODO: 로컬에서 최신 학습된 모델의 creation_time 가져오기
-    get_latest_trained_model_creation_time_task = EmptyOperator(
+    # 로컬에서 최신 학습된 모델의 creation_time 가져오기
+    get_latest_trained_model_creation_time_task = PythonOperator(
         task_id="get_latest_trained_model_creation_time",
+        python_callable=get_latest_trained_model_creation_time,
     )
 
-    # TODO: 모델을 업데이트할지 결정
-    decide_update_task = EmptyOperator(
+    # 모델을 업데이트할지 결정
+    decide_update_task = BranchPythonOperator(
         task_id="decide_update",
+        python_callable=decide_model_update,
+        provide_context=True,
     )
 
-    # TODO: 새로운 모델을 배포
-    deploy_new_model_task = EmptyOperator(
+    # 새로운 모델을 배포
+    deploy_new_model_task = BashOperator(
         task_id="deploy_new_model",
+        bash_command=f"cd {airflow_dags_path}/api/docker &&"
+        "docker compose up --build --detach",
     )
 
     # 배포를 건너뛸 경우 실행할 더미 태스크
