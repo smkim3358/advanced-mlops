@@ -19,7 +19,7 @@ sql_file_path = os.path.join(
     "pipelines",
     "continuous_training",
     "data_extract",
-    "features.sql",
+    "features.sql",git 
 )
 
 with DAG(
@@ -37,7 +37,6 @@ with DAG(
     catchup=False,
     tags=["lgcns", "mlops"],
 ) as dag:
-    # 아래 Task를 적절한 Operator를 사용하여 구현
     data_extract = SQLExecuteQueryOperator(
         task_id="data_extraction",
         conn_id=conn_id,
@@ -45,7 +44,18 @@ with DAG(
         split_statements=True,
     )
 
-    data_preprocessing = EmptyOperator(task_id="data_preprocessing")
+    data_preprocessing = BashOperator(
+        task_id="data_preprocessing",
+        bash_command=f"cd {airflow_dags_path}/pipelines/continuous_training/docker &&"
+        "docker compose up --build && docker compose down",
+        env={
+            "PYTHON_FILE": "/home/codespace/data_preprocessing/preprocessor.py",
+            "MODEL_NAME": "credit_score_classification",
+            "BASE_DT": "{{ ds }}",
+        },
+        append_env=True,
+        retries=1,
+    )
 
     training = EmptyOperator(task_id="model_training")
 
