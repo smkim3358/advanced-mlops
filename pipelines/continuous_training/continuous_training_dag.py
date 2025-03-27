@@ -19,7 +19,7 @@ sql_file_path = os.path.join(
     "pipelines",
     "continuous_training",
     "data_extract",
-    "features.sql",git 
+    "features.sql",
 )
 
 with DAG(
@@ -43,7 +43,7 @@ with DAG(
         sql=read_sql_file(sql_file_path),
         split_statements=True,
     )
-
+    
     data_preprocessing = BashOperator(
         task_id="data_preprocessing",
         bash_command=f"cd {airflow_dags_path}/pipelines/continuous_training/docker &&"
